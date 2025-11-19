@@ -1,0 +1,304 @@
+# ============================================================================
+# Docker Compose for Critter Chronologer PostgreSQL Development Environment
+# ============================================================================
+# 
+# This Docker Compose configuration provides:
+# 1. PostgreSQL database server with persistent storage
+# 2. pgAdmin web interface for database management
+# 3. Automatic database and user creation
+# 4. Health checks and dependency management
+# 
+# Usage:
+#   docker-compose up -d     # Start services in background
+#   docker-compose down      # Stop services
+#   docker-compose logs      # View logs
+#   docker-compose down -v   # Stop and remove volumes (deletes data!)
+# 
+# Prerequisites:
+#   - Docker Desktop installed and running
+#   - Available ports: 5432 (PostgreSQL), 8080 (pgAdmin)
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# SERVICES DEFINITION
+# ============================================================================
+
+services:
+
+  # --------------------------------------------------------------------------
+  # PostgreSQL Database Service
+  # --------------------------------------------------------------------------
+  postgres:
+    # Use official PostgreSQL Docker image (version 15 for stability)
+    # PostgreSQL 15 provides excellent performance and the latest features
+    # while maintaining stability for production use
+    image: postgres:15-alpine
+    
+    # Container name for easy reference in commands
+    # Example: docker exec -it critter-postgres psql -U postgres
+    container_name: critter-postgres
+    
+    # Restart policy: always restart if container stops unexpectedly
+    # Ensures database availability during development
+    restart: unless-stopped
+    
+    # Environment variables for PostgreSQL configuration
+    # These variables are used by the PostgreSQL Docker image during initialization
+    environment:
+      # Superuser password (required for PostgreSQL Docker image)
+      # This is the password for the 'postgres' admin user
+      POSTGRES_PASSWORD: postgres_admin_123
+      
+      # Application database (automatically created on first startup)
+      # This creates the 'critterdb' database that our application will use
+      POSTGRES_DB: critterdb
+      
+      # Default user (automatically created with access to POSTGRES_DB)
+      # This creates a dedicated user for our application
+      POSTGRES_USER: critter_user
+      
+      # Locale settings for consistent character handling
+      # These ensure proper sorting and character classification
+      LC_COLLATE: C
+      LC_CTYPE: C
+    
+    # Port mapping: host_port:container_port
+    # Maps PostgreSQL's standard port 5432 to the same port on your machine
+    # This allows your Spring Boot app to connect to localhost:5432
+    ports:
+      - "5432:5432"
+    
+    # Volume mounts for data persistence and configuration
+    volumes:
+      # Persistent data storage: survives container restarts and rebuilds
+      # All database data will be stored in the 'postgres_data' named volume
+      - postgres_data:/var/lib/postgresql/data
+      
+      # Custom initialization scripts (optional)
+      # Any .sql or .sh files in this directory will run on first startup
+      # Uncomment and create ./docker-init/ directory to use custom init scripts
+      # - ./docker-init:/docker-entrypoint-initdb.d
+    
+    # Health check to monitor database availability
+    # This ensures the database is fully ready before dependent services start
+    healthcheck:
+      # Command to test database connectivity
+      # pg_isready is a PostgreSQL utility that checks if the server is accepting connections
+      test: ["CMD-SHELL", "pg_isready -U critter_user -d critterdb"]
+      
+      # Health check timing configuration
+      interval: 30s        # Check every 30 seconds
+      timeout: 10s         # Wait up to 10 seconds for response
+      retries: 5           # Try 5 times before marking as unhealthy
+      start_period: 60s    # Wait 60 seconds before starting health checks
+    
+    # Network configuration (uses default bridge network)
+    # Both services will be on the same network and can communicate
+    networks:
+      - critter-network
+
+  # --------------------------------------------------------------------------
+  # pgAdmin Database Management Interface
+  # --------------------------------------------------------------------------
+  pgadmin:
+    # Official pgAdmin Docker image (latest stable version)
+    # pgAdmin provides a web-based interface for PostgreSQL management
+    image: dpage/pgadmin4:latest
+    
+    # Container name for easy reference
+    container_name: critter-pgadmin
+    
+    # Restart policy: restart unless explicitly stopped
+    restart: unless-stopped
+    
+    # Environment variables for pgAdmin configuration
+    environment:
+      # Default login credentials for pgAdmin web interface
+      # These are NOT the database credentials - they're for pgAdmin login
+      PGADMIN_DEFAULT_EMAIL: admin@critter.local
+      PGADMIN_DEFAULT_PASSWORD: pgadmin123
+      
+      # Disable enhanced cookie security for development
+      # In production, remove this line for better security
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
+      
+      # Automatically add PostgreSQL server connection
+      # This pre-configures pgAdmin to connect to our PostgreSQL container
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    
+    # Port mapping for web interface
+    # Maps pgAdmin's internal port 80 to port 8080 on your machine
+    # Access pgAdmin at: http://localhost:8080
+    ports:
+      - "8080:80"
+    
+    # Volume mounts for persistent configuration
+    volumes:
+      # Persistent pgAdmin settings and configuration
+      # This preserves your pgAdmin settings between container restarts
+      - pgadmin_data:/var/lib/pgadmin
+      
+      # Pre-configured server connection (optional)
+      # Uncomment to automatically configure PostgreSQL server in pgAdmin
+      # - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
+    
+    # Service dependencies
+    # Ensures PostgreSQL is healthy before starting pgAdmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Network configuration
+    networks:
+      - critter-network
+
+# ============================================================================
+# VOLUMES CONFIGURATION
+# ============================================================================
+
+# Named volumes for persistent data storage
+# These volumes persist data even when containers are removed
+volumes:
+  
+  # PostgreSQL data volume
+  # Stores all database files, tables, indexes, and configuration
+  # Location on host: managed by Docker (usually /var/lib/docker/volumes/)
+  postgres_data:
+    driver: local
+    # Using Docker-managed volume (no bind mount configuration needed)
+    # This creates a named volume that persists data automatically
+  
+  # pgAdmin data volume  
+  # Stores pgAdmin configuration, server connections, and user preferences
+  pgadmin_data:
+    driver: local
+
+# ============================================================================
+# NETWORKS CONFIGURATION
+# ============================================================================
+
+# Custom network for service communication
+# Allows containers to communicate using service names as hostnames
+networks:
+  critter-network:
+    driver: bridge
+    # Custom network configuration (optional)
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# USAGE EXAMPLES AND COMMANDS
+# ============================================================================
+
+# To use this Docker Compose setup:
+#
+# 1. START SERVICES (from directory containing this file):
+#    docker-compose up -d
+#    
+# 2. VIEW LOGS:
+#    docker-compose logs postgres    # PostgreSQL logs
+#    docker-compose logs pgadmin     # pgAdmin logs
+#    docker-compose logs -f          # Follow all logs in real-time
+#
+# 3. ACCESS SERVICES:
+#    PostgreSQL: localhost:5432
+#      - Database: critterdb
+#      - Username: critter_user  
+#      - Password: postgres_admin_123
+#      
+#    pgAdmin: http://localhost:8080
+#      - Email: admin@critter.local
+#      - Password: pgadmin123
+#
+# 4. CONNECT TO DATABASE (command line):
+#    docker exec -it critter-postgres psql -U critter_user -d critterdb
+#
+# 5. BACKUP DATABASE:
+#    docker exec critter-postgres pg_dump -U critter_user critterdb > backup.sql
+#
+# 6. RESTORE DATABASE:
+#    docker exec -i critter-postgres psql -U critter_user -d critterdb < backup.sql
+#
+# 7. STOP SERVICES:
+#    docker-compose down
+#
+# 8. STOP AND REMOVE ALL DATA (WARNING: Destructive!):
+#    docker-compose down -v
+#
+# 9. VIEW RUNNING CONTAINERS:
+#    docker-compose ps
+#
+# 10. REBUILD SERVICES:
+#     docker-compose up --build -d
+
+# ============================================================================
+# SPRING BOOT APPLICATION CONFIGURATION
+# ============================================================================
+
+# When using this Docker setup, update your Spring Boot application.properties:
+#
+# spring.datasource.url=jdbc:postgresql://localhost:5432/critterdb
+# spring.datasource.username=critter_user
+# spring.datasource.password=postgres_admin_123
+# spring.datasource.driver-class-name=org.postgresql.Driver
+
+# ============================================================================
+# PRODUCTION CONSIDERATIONS
+# ============================================================================
+
+# For production deployment, consider these modifications:
+#
+# 1. SECURITY:
+#    - Use Docker secrets for passwords
+#    - Change default passwords to strong, unique values
+#    - Disable pgAdmin or restrict access
+#    - Use environment variables from external sources
+#
+# 2. PERFORMANCE:
+#    - Configure PostgreSQL memory settings
+#    - Set up connection pooling
+#    - Use specific PostgreSQL version tags (not 'latest')
+#
+# 3. PERSISTENCE:
+#    - Use named volumes or bind mounts for data persistence
+#    - Set up regular backups
+#    - Configure log rotation
+#
+# 4. NETWORKING:
+#    - Use custom networks with proper isolation
+#    - Configure SSL/TLS for database connections
+#    - Set up firewall rules
+#
+# 5. MONITORING:
+#    - Add health check endpoints
+#    - Set up log aggregation
+#    - Configure alerting for failures
+
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+
+# Common issues and solutions:
+#
+# 1. Port already in use (5432 or 8080):
+#    - Change port mapping in this file
+#    - Stop conflicting services: docker ps and docker stop <container>
+#
+# 2. Permission denied errors:
+#    - Check Docker Desktop is running
+#    - Ensure you have proper permissions for volume directories
+#
+# 3. Database connection refused:
+#    - Wait for health check to pass: docker-compose ps
+#    - Check logs: docker-compose logs postgres
+#
+# 4. pgAdmin login fails:
+#    - Verify credentials in environment section above
+#    - Check pgAdmin logs: docker-compose logs pgadmin
+#
+# 5. Data not persisting:
+#    - Verify named volumes are created: docker volume ls
+#    - Check volume mounts in containers: docker inspect <container>
