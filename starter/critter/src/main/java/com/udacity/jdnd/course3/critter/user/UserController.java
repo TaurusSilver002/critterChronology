@@ -17,17 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.udacity.jdnd.course3.critter.pet.Pet;
 import com.udacity.jdnd.course3.critter.pet.PetService;
 
-// REST Controller for user-related operations (customers and employees)
 @RestController
-@RequestMapping("/user") // Base URL path for all user endpoints
+@RequestMapping("/user")
 public class UserController {
     
-    // Service dependencies for business logic
     private final CustomerService customerService;
     private final EmployeeService employeeService;
     private final PetService petService;
     
-    // Constructor injection of all required services
     @Autowired
     public UserController(CustomerService customerService, 
                          EmployeeService employeeService,
@@ -37,7 +34,6 @@ public class UserController {
         this.petService = petService;
     }
 
-    // POST endpoint: Creates a new customer
     @PostMapping("/customer")
     public CustomerDTO saveCustomer(@RequestBody CustomerDTO customerDTO) {
         Customer customer = convertCustomerDTOToEntity(customerDTO);
@@ -45,7 +41,6 @@ public class UserController {
         return convertCustomerEntityToDTO(savedCustomer);
     }
 
-    // GET endpoint: Retrieves all customers
     @GetMapping("/customer")
     public List<CustomerDTO> getAllCustomers() {
         List<Customer> customers = customerService.getAllCustomers();
@@ -54,17 +49,14 @@ public class UserController {
                 .collect(Collectors.toList());
     }
 
-    // GET endpoint: Finds the owner (customer) of a specific pet
     @GetMapping("/customer/pet/{petId}")
     public CustomerDTO getOwnerByPet(@PathVariable long petId){
         Pet pet = petService.getPetById(petId);
         Customer owner = pet.getOwner();
-        // Force loading of pets collection to ensure consistency
         owner.getPets().size();
         return convertCustomerEntityToDTO(owner);
     }
 
-    // POST endpoint: Creates a new employee
     @PostMapping("/employee")
     public EmployeeDTO saveEmployee(@RequestBody EmployeeDTO employeeDTO) {
         Employee employee = convertEmployeeDTOToEntity(employeeDTO);
@@ -72,20 +64,17 @@ public class UserController {
         return convertEmployeeEntityToDTO(savedEmployee);
     }
 
-    // POST endpoint: Retrieves a specific employee by ID
     @PostMapping("/employee/{employeeId}")
     public EmployeeDTO getEmployee(@PathVariable long employeeId) {
         Employee employee = employeeService.getEmployeeById(employeeId);
         return convertEmployeeEntityToDTO(employee);
     }
 
-    // PUT endpoint: Updates an employee's availability schedule
     @PutMapping("/employee/{employeeId}")
     public void setAvailability(@RequestBody Set<DayOfWeek> daysAvailable, @PathVariable long employeeId) {
         employeeService.setEmployeeAvailability(employeeId, daysAvailable);
     }
 
-    // GET endpoint: Finds employees available for specific service requirements
     @GetMapping("/employee/availability")
     public List<EmployeeDTO> findEmployeesForService(@RequestBody EmployeeRequestDTO employeeDTO) {
         List<Employee> availableEmployees = employeeService.findEmployeesForService(
@@ -98,7 +87,6 @@ public class UserController {
                 .collect(Collectors.toList());
     }
     
-    // Helper method: Converts CustomerDTO (API layer) to Customer entity (database layer)
     private Customer convertCustomerDTOToEntity(CustomerDTO customerDTO) {
         Customer customer = new Customer();
         customer.setId(customerDTO.getId() != 0 ? customerDTO.getId() : null);
@@ -108,7 +96,6 @@ public class UserController {
         return customer;
     }
     
-    // Helper method: Converts Customer entity (database layer) to CustomerDTO (API layer)
     private CustomerDTO convertCustomerEntityToDTO(Customer customer) {
         CustomerDTO customerDTO = new CustomerDTO();
         customerDTO.setId(customer.getId());
@@ -116,7 +103,6 @@ public class UserController {
         customerDTO.setPhoneNumber(customer.getPhoneNumber());
         customerDTO.setNotes(customer.getNotes());
         
-        // Include pet IDs if customer has pets (lazy loading consideration)
         if (customer.getPets() != null) {
             List<Long> petIds = customer.getPets().stream()
                     .map(Pet::getId)
@@ -127,7 +113,6 @@ public class UserController {
         return customerDTO;
     }
     
-    // Helper method: Converts EmployeeDTO (API layer) to Employee entity (database layer)
     private Employee convertEmployeeDTOToEntity(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         employee.setId(employeeDTO.getId() != 0 ? employeeDTO.getId() : null);
@@ -137,7 +122,6 @@ public class UserController {
         return employee;
     }
     
-    // Helper method: Converts Employee entity (database layer) to EmployeeDTO (API layer)
     private EmployeeDTO convertEmployeeEntityToDTO(Employee employee) {
         EmployeeDTO employeeDTO = new EmployeeDTO();
         employeeDTO.setId(employee.getId());

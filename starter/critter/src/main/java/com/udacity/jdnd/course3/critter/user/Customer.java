@@ -12,39 +12,28 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 
-/**
- * Customer entity representing pet owners in the critter system.
- * Simplified version with only required JPA annotations.
- */
-@Entity // JPA annotation: Marks this class as a database entity
+@Entity
 public class Customer {
     
-    @Id // JPA annotation: Primary key identifier
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment strategy
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Simple fields mapped to database columns
     private String name;
     private String phoneNumber;
     private String notes;
     
-    // JPA relationship: One customer can have many pets
-    // mappedBy="owner" indicates Pet entity owns the foreign key
-    // cascade=ALL means operations on customer cascade to pets
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Pet> pets = new ArrayList<>();
     
-    // Default constructor required by JPA
     public Customer() {}
     
-    // Constructor for creating new customers
     public Customer(String name, String phoneNumber, String notes) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.notes = notes;
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -85,21 +74,13 @@ public class Customer {
         this.pets = pets;
     }
     
-    /**
-     * Utility method to add a pet and maintain bidirectional relationship
-     * Important: Maintains both sides of the @OneToMany/@ManyToOne relationship
-     */
     public void addPet(Pet pet) {
-        pets.add(pet);      // Add to customer's pet list
-        pet.setOwner(this); // Set customer as pet's owner
+        pets.add(pet);
+        pet.setOwner(this);
     }
     
-    /**
-     * Utility method to remove a pet and maintain bidirectional relationship
-     * Important: Cleans up both sides of the relationship
-     */
     public void removePet(Pet pet) {
-        pets.remove(pet);     // Remove from customer's pet list
-        pet.setOwner(null);   // Clear pet's owner reference
+        pets.remove(pet);
+        pet.setOwner(null);
     }
 }

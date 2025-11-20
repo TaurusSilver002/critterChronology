@@ -14,33 +14,26 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 
-/**
- * Pet entity representing animals in the critter system.
- * Simplified version with only required JPA annotations.
- */
-@Entity // JPA annotation: Marks this class as a database entity
+@Entity
 public class Pet {
     
-    @Id // JPA annotation: Marks this field as the primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment primary key
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Simple fields mapped directly to database columns
     private PetType type;
     private String name;
     private LocalDate birthDate;
     private String notes;
     
-    @ManyToOne // JPA relationship: Many pets can belong to one customer
+    @ManyToOne
     private Customer owner;
     
-    @ManyToMany(mappedBy = "pets") // JPA relationship: Pet can be in multiple schedules
+    @ManyToMany(mappedBy = "pets")
     private List<Schedule> schedules = new ArrayList<>();
     
-    // Default constructor required by JPA for entity instantiation
     public Pet() {}
     
-    // Constructor for creating new pets with initial data
     public Pet(PetType type, String name, LocalDate birthDate, String notes) {
         this.type = type;
         this.name = name;
@@ -48,7 +41,6 @@ public class Pet {
         this.notes = notes;
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }
