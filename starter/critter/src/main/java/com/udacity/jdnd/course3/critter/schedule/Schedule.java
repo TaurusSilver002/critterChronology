@@ -10,88 +10,40 @@ import com.udacity.jdnd.course3.critter.pet.Pet;
 import com.udacity.jdnd.course3.critter.user.Employee;
 import com.udacity.jdnd.course3.critter.user.EmployeeSkill;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
 
 /**
  * Schedule entity representing appointments/bookings in the critter system.
- * 
- * Annotations explained:
- * @JoinTable - Specifies the join table for many-to-many relationships
- *   - name: Name of the join table
- *   - joinColumns: Foreign key columns referencing this entity
- *   - inverseJoinColumns: Foreign key columns referencing the other entity
- * @ManyToMany - Many schedules can have many employees/pets
- * @ElementCollection - For storing activities (EmployeeSkill enums)
+ * Simplified version with only required JPA annotations.
  */
-@Entity
-@Table(name = "schedules")
+@Entity // JPA annotation: Marks this class as a database entity
 public class Schedule {
     
-    /**
-     * Primary key with auto-generation
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id // JPA annotation: Primary key identifier
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment primary key
     private Long id;
     
-    /**
-     * Date of the scheduled appointment
-     */
-    @Column(nullable = false)
+    // Simple field for appointment date
     private LocalDate date;
     
-    /**
-     * Many-to-Many relationship with Employee entity
-     * Creates a join table "schedule_employees" to link schedules and employees
-     * @JoinTable specifies:
-     *   - name: Join table name
-     *   - joinColumns: FK column pointing to this schedule
-     *   - inverseJoinColumns: FK column pointing to employee
-     */
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-        name = "schedule_employees",
-        joinColumns = @JoinColumn(name = "schedule_id"),
-        inverseJoinColumns = @JoinColumn(name = "employee_id")
-    )
+    // @ManyToMany: Schedule can have multiple employees, employees can have multiple schedules
+    // Creates schedule_employees join table with schedule_id and employees_id
+    @ManyToMany
     private List<Employee> employees = new ArrayList<>();
     
-    /**
-     * Many-to-Many relationship with Pet entity
-     * Creates a join table "schedule_pets" to link schedules and pets
-     */
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-        name = "schedule_pets",
-        joinColumns = @JoinColumn(name = "schedule_id"),
-        inverseJoinColumns = @JoinColumn(name = "pet_id")
-    )
+    // @ManyToMany: Schedule can have multiple pets, pets can have multiple schedules
+    // Creates schedule_pets join table with schedule_id and pets_id
+    @ManyToMany
     private List<Pet> pets = new ArrayList<>();
     
-    /**
-     * Activities/services to be performed during this schedule
-     * @ElementCollection: Creates a separate table "schedule_activities"
-     * @CollectionTable: Specifies join table details
-     * @Enumerated(STRING): Stores enum values as strings
-     */
-    @ElementCollection(targetClass = EmployeeSkill.class, fetch = FetchType.EAGER)
-    @CollectionTable(name = "schedule_activities", joinColumns = @JoinColumn(name = "schedule_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "activity")
+    // @ElementCollection: Stores activity types in separate table
+    // Creates schedule_activities table with schedule_id and activities columns
+    @ElementCollection
     private Set<EmployeeSkill> activities = new HashSet<>();
     
     // Default constructor required by JPA
@@ -148,42 +100,46 @@ public class Schedule {
     
     /**
      * Utility method to add an employee to this schedule
+     * Maintains bidirectional @ManyToMany relationship
      */
     public void addEmployee(Employee employee) {
         if (!this.employees.contains(employee)) {
-            this.employees.add(employee);
-            employee.getSchedules().add(this);
+            this.employees.add(employee);           // Add to schedule's employee list
+            employee.getSchedules().add(this);      // Add schedule to employee's schedule list
         }
     }
     
     /**
      * Utility method to remove an employee from this schedule
+     * Cleans up both sides of the @ManyToMany relationship
      */
     public void removeEmployee(Employee employee) {
-        this.employees.remove(employee);
-        employee.getSchedules().remove(this);
+        this.employees.remove(employee);            // Remove from schedule's employee list
+        employee.getSchedules().remove(this);       // Remove schedule from employee's list
     }
     
     /**
      * Utility method to add a pet to this schedule
+     * Maintains bidirectional @ManyToMany relationship
      */
     public void addPet(Pet pet) {
         if (!this.pets.contains(pet)) {
-            this.pets.add(pet);
-            pet.getSchedules().add(this);
+            this.pets.add(pet);                     // Add to schedule's pet list
+            pet.getSchedules().add(this);           // Add schedule to pet's schedule list
         }
     }
     
     /**
      * Utility method to remove a pet from this schedule
+     * Cleans up both sides of the @ManyToMany relationship
      */
     public void removePet(Pet pet) {
-        this.pets.remove(pet);
-        pet.getSchedules().remove(this);
+        this.pets.remove(pet);                      // Remove from schedule's pet list
+        pet.getSchedules().remove(this);            // Remove schedule from pet's list
     }
     
     /**
-     * Utility method to add an activity
+     * Utility method to add an activity/service to this schedule
      */
     public void addActivity(EmployeeSkill activity) {
         this.activities.add(activity);

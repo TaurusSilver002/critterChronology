@@ -6,70 +6,32 @@ import java.util.List;
 import com.udacity.jdnd.course3.critter.pet.Pet;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 
 /**
  * Customer entity representing pet owners in the critter system.
- * 
- * Annotations explained:
- * @Entity - Marks this class as a JPA entity that maps to a database table
- * @Table - Specifies the table name in the database (optional, defaults to class name)
- * @Id - Marks the primary key field
- * @GeneratedValue - Automatically generates primary key values using specified strategy
- * @Column - Maps the field to a specific database column with constraints
- * @OneToMany - Defines one-to-many relationship (one customer can have many pets)
- *   - mappedBy: Specifies the field in the Pet entity that owns the relationship
- *   - cascade: Operations that should cascade to related entities
- *   - fetch: Loading strategy (LAZY = load on demand, EAGER = load immediately)
- *   - orphanRemoval: Automatically delete pets when removed from customer's pet list
+ * Simplified version with only required JPA annotations.
  */
-@Entity
-@Table(name = "customers")
+@Entity // JPA annotation: Marks this class as a database entity
 public class Customer {
     
-    /**
-     * Primary key with auto-generation
-     * IDENTITY strategy uses database's auto-increment feature
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id // JPA annotation: Primary key identifier
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment strategy
     private Long id;
     
-    /**
-     * Customer name with database constraints
-     * nullable = false: Creates NOT NULL constraint
-     * length = 100: Creates VARCHAR(100) column
-     */
-    @Column(nullable = false, length = 100)
+    // Simple fields mapped to database columns
     private String name;
-    
-    /**
-     * Phone number field with length constraint
-     */
-    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
-    
-    /**
-     * Optional notes field with larger text capacity
-     */
-    @Column(length = 500)
     private String notes;
     
-    /**
-     * One-to-Many relationship with Pet entity
-     * mappedBy = "owner": Pet entity has an "owner" field that references this Customer
-     * cascade = ALL: All operations (save, update, delete) cascade to pets
-     * fetch = LAZY: Pets are loaded only when accessed (better performance)
-     * orphanRemoval = true: If a pet is removed from this list, it's deleted from database
-     */
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    // JPA relationship: One customer can have many pets
+    // mappedBy="owner" indicates Pet entity owns the foreign key
+    // cascade=ALL means operations on customer cascade to pets
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Pet> pets = new ArrayList<>();
     
     // Default constructor required by JPA
@@ -125,17 +87,19 @@ public class Customer {
     
     /**
      * Utility method to add a pet and maintain bidirectional relationship
+     * Important: Maintains both sides of the @OneToMany/@ManyToOne relationship
      */
     public void addPet(Pet pet) {
-        pets.add(pet);
-        pet.setOwner(this);
+        pets.add(pet);      // Add to customer's pet list
+        pet.setOwner(this); // Set customer as pet's owner
     }
     
     /**
      * Utility method to remove a pet and maintain bidirectional relationship
+     * Important: Cleans up both sides of the relationship
      */
     public void removePet(Pet pet) {
-        pets.remove(pet);
-        pet.setOwner(null);
+        pets.remove(pet);     // Remove from customer's pet list
+        pet.setOwner(null);   // Clear pet's owner reference
     }
 }

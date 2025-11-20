@@ -17,27 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.udacity.jdnd.course3.critter.pet.Pet;
 import com.udacity.jdnd.course3.critter.pet.PetService;
 
-/**
- * Handles web requests related to Users.
- *
- * Includes requests for both customers and employees. Splitting this into separate user and customer controllers
- * would be fine too, though that is not part of the required scope for this class.
- * 
- * Additional controller annotations:
- * @PutMapping - Maps HTTP PUT requests (typically for updates)
- * @GetMapping with @RequestBody - GET request with request body (unusual but valid)
- */
+// REST Controller for user-related operations (customers and employees)
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/user") // Base URL path for all user endpoints
 public class UserController {
     
+    // Service dependencies for business logic
     private final CustomerService customerService;
     private final EmployeeService employeeService;
     private final PetService petService;
     
-    /**
-     * Constructor injection for all required services.
-     */
+    // Constructor injection of all required services
     @Autowired
     public UserController(CustomerService customerService, 
                          EmployeeService employeeService,
@@ -47,137 +37,55 @@ public class UserController {
         this.petService = petService;
     }
 
-    /**
-     * Save a new customer.
-     * 
-     * HTTP POST /user/customer
-     * Request body: CustomerDTO (JSON)
-     * Response: CustomerDTO (JSON) with generated ID
-     */
+    // POST endpoint: Creates a new customer
     @PostMapping("/customer")
-    public CustomerDTO saveCustomer(@RequestBody CustomerDTO customerDTO){
-        // throw new UnsupportedOperationException();
-        // Replaced with service layer call:
-        // - Converts DTO to entity for business logic
-        // - Uses service for validation and persistence
-        // - Returns DTO with generated ID for API response
-        
+    public CustomerDTO saveCustomer(@RequestBody CustomerDTO customerDTO) {
         Customer customer = convertCustomerDTOToEntity(customerDTO);
         Customer savedCustomer = customerService.saveCustomer(customer);
         return convertCustomerEntityToDTO(savedCustomer);
     }
 
-    /**
-     * Get all customers.
-     * 
-     * HTTP GET /user/customer
-     * Response: List<CustomerDTO> (JSON array)
-     */
+    // GET endpoint: Retrieves all customers
     @GetMapping("/customer")
-    public List<CustomerDTO> getAllCustomers(){
-        // throw new UnsupportedOperationException();
-        // Replaced with service call to retrieve all customers
-        // Converts list of entities to list of DTOs using streams
-        
+    public List<CustomerDTO> getAllCustomers() {
         List<Customer> customers = customerService.getAllCustomers();
         return customers.stream()
                 .map(this::convertCustomerEntityToDTO)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get the owner (customer) of a specific pet.
-     * 
-     * HTTP GET /user/customer/pet/{petId}
-     * Path variable: petId (long)
-     * Response: CustomerDTO (JSON)
-     */
+    // GET endpoint: Finds the owner (customer) of a specific pet
     @GetMapping("/customer/pet/{petId}")
     public CustomerDTO getOwnerByPet(@PathVariable long petId){
-        // throw new UnsupportedOperationException();
-        // Replaced with logic to:
-        // - Find pet by ID using pet service
-        // - Get the owner from pet's owner relationship
-        // - Convert owner entity to DTO
-        
         Pet pet = petService.getPetById(petId);
         Customer owner = pet.getOwner();
         return convertCustomerEntityToDTO(owner);
     }
 
-    /**
-     * Save a new employee.
-     * 
-     * HTTP POST /user/employee
-     * Request body: EmployeeDTO (JSON)
-     * Response: EmployeeDTO (JSON) with generated ID
-     */
+    // POST endpoint: Creates a new employee
     @PostMapping("/employee")
     public EmployeeDTO saveEmployee(@RequestBody EmployeeDTO employeeDTO) {
-        // throw new UnsupportedOperationException();
-        // Replaced with service layer integration
-        // Handles skills and availability collections properly
-        
         Employee employee = convertEmployeeDTOToEntity(employeeDTO);
         Employee savedEmployee = employeeService.saveEmployee(employee);
         return convertEmployeeEntityToDTO(savedEmployee);
     }
 
-    /**
-     * Get an employee by ID.
-     * 
-     * HTTP POST /user/employee/{employeeId} (Note: Should probably be GET)
-     * Path variable: employeeId (long)
-     * Response: EmployeeDTO (JSON)
-     * 
-     * Note: The original mapping uses POST, which is unusual for a read operation.
-     * Typically this would be GET, but keeping original mapping for compatibility.
-     */
+    // POST endpoint: Retrieves a specific employee by ID
     @PostMapping("/employee/{employeeId}")
     public EmployeeDTO getEmployee(@PathVariable long employeeId) {
-        // throw new UnsupportedOperationException();
-        // Replaced with service call to get employee by ID
-        
         Employee employee = employeeService.getEmployeeById(employeeId);
         return convertEmployeeEntityToDTO(employee);
     }
 
-    /**
-     * Set an employee's availability.
-     * 
-     * HTTP PUT /user/employee/{employeeId}
-     * Path variable: employeeId (long)
-     * Request body: Set<DayOfWeek> (JSON array)
-     * Response: void (HTTP 200 OK)
-     * 
-     * @PutMapping indicates this is an update operation
-     */
+    // PUT endpoint: Updates an employee's availability schedule
     @PutMapping("/employee/{employeeId}")
     public void setAvailability(@RequestBody Set<DayOfWeek> daysAvailable, @PathVariable long employeeId) {
-        // throw new UnsupportedOperationException();
-        // Replaced with service call to update employee availability
-        // Service handles validation and persistence
-        
         employeeService.setEmployeeAvailability(employeeId, daysAvailable);
     }
 
-    /**
-     * Find employees available for service based on date and required skills.
-     * 
-     * HTTP GET /user/employee/availability
-     * Request body: EmployeeRequestDTO (JSON) - contains date and skills
-     * Response: List<EmployeeDTO> (JSON array)
-     * 
-     * Note: GET with request body is unusual but valid.
-     * Could be refactored to use query parameters instead.
-     */
+    // GET endpoint: Finds employees available for specific service requirements
     @GetMapping("/employee/availability")
     public List<EmployeeDTO> findEmployeesForService(@RequestBody EmployeeRequestDTO employeeDTO) {
-        // throw new UnsupportedOperationException();
-        // Replaced with service call that finds employees matching criteria:
-        // - Available on the requested date
-        // - Have all required skills
-        
         List<Employee> availableEmployees = employeeService.findEmployeesForService(
             employeeDTO.getDate(), 
             employeeDTO.getSkills()
@@ -188,22 +96,17 @@ public class UserController {
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Convert CustomerDTO to Customer entity (manual mapping).
-     */
+    // Helper method: Converts CustomerDTO (API layer) to Customer entity (database layer)
     private Customer convertCustomerDTOToEntity(CustomerDTO customerDTO) {
         Customer customer = new Customer();
         customer.setId(customerDTO.getId() != 0 ? customerDTO.getId() : null);
         customer.setName(customerDTO.getName());
         customer.setPhoneNumber(customerDTO.getPhoneNumber());
         customer.setNotes(customerDTO.getNotes());
-        // Note: Pets relationship is managed separately in the pet operations
         return customer;
     }
     
-    /**
-     * Convert Customer entity to CustomerDTO (manual mapping).
-     */
+    // Helper method: Converts Customer entity (database layer) to CustomerDTO (API layer)
     private CustomerDTO convertCustomerEntityToDTO(Customer customer) {
         CustomerDTO customerDTO = new CustomerDTO();
         customerDTO.setId(customer.getId());
@@ -211,7 +114,7 @@ public class UserController {
         customerDTO.setPhoneNumber(customer.getPhoneNumber());
         customerDTO.setNotes(customer.getNotes());
         
-        // Convert pets list to pet IDs list
+        // Include pet IDs if customer has pets (lazy loading consideration)
         if (customer.getPets() != null) {
             List<Long> petIds = customer.getPets().stream()
                     .map(Pet::getId)
@@ -222,9 +125,7 @@ public class UserController {
         return customerDTO;
     }
     
-    /**
-     * Convert EmployeeDTO to Employee entity (manual mapping).
-     */
+    // Helper method: Converts EmployeeDTO (API layer) to Employee entity (database layer)
     private Employee convertEmployeeDTOToEntity(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
         employee.setId(employeeDTO.getId() != 0 ? employeeDTO.getId() : null);
@@ -234,9 +135,7 @@ public class UserController {
         return employee;
     }
     
-    /**
-     * Convert Employee entity to EmployeeDTO (manual mapping).
-     */
+    // Helper method: Converts Employee entity (database layer) to EmployeeDTO (API layer)
     private EmployeeDTO convertEmployeeEntityToDTO(Employee employee) {
         EmployeeDTO employeeDTO = new EmployeeDTO();
         employeeDTO.setId(employee.getId());
