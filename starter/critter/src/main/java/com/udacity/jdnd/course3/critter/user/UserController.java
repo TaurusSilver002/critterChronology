@@ -59,6 +59,8 @@ public class UserController {
     public CustomerDTO getOwnerByPet(@PathVariable long petId){
         Pet pet = petService.getPetById(petId);
         Customer owner = pet.getOwner();
+        // Force loading of pets collection to ensure consistency
+        owner.getPets().size();
         return convertCustomerEntityToDTO(owner);
     }
 

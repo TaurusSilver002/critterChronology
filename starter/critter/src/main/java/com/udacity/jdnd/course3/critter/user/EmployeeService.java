@@ -8,20 +8,14 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 // Service layer for employee business logic and scheduling
 @Service
-@Transactional
 public class EmployeeService {
     
     // Repository for employee database operations
-    private final EmployeeRepository employeeRepository;
-    
     @Autowired
-    public EmployeeService(EmployeeRepository employeeRepository) {
-        this.employeeRepository = employeeRepository;
-    }
+    private EmployeeRepository employeeRepository;
     
     // Saves a new employee to the database
     public Employee saveEmployee(Employee employee) {
@@ -30,8 +24,7 @@ public class EmployeeService {
     
     // Retrieves an employee by ID, throws exception if not found
     public Employee getEmployeeById(Long employeeId) {
-        return employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found with ID: " + employeeId));
+        return employeeRepository.findById(employeeId).orElseThrow();
     }
     
     // Updates an employee's availability schedule
@@ -43,13 +36,9 @@ public class EmployeeService {
     
     // Finds employees available for service on a specific date with required skills
     public List<Employee> findEmployeesForService(LocalDate date, Set<EmployeeSkill> skills) {
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
-        // First, find employees available on this day with any of the required skills
-        List<Employee> candidateEmployees = employeeRepository
-                .findAvailableEmployeesWithSkills(dayOfWeek, skills);
-        
-        // Filter to ensure employees have ALL required skills
-        return candidateEmployees.stream()
+        // Find employees available on this day with required skills, then filter for ALL skills
+        return employeeRepository.findAvailableEmployeesWithSkills(date.getDayOfWeek(), skills)
+                .stream()
                 .filter(employee -> employee.getSkills().containsAll(skills))
                 .collect(Collectors.toList());
     }

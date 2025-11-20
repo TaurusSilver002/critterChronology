@@ -35,11 +35,8 @@ public class PetService {
         pet.setOwner(owner);
         Pet savedPet = petRepository.save(pet);
         
-        // Ensure the owner's pet list is updated (bidirectional relationship)
-        if (!owner.getPets().contains(savedPet)) {
-            owner.addPet(savedPet);
-            customerRepository.save(owner);
-        }
+        // Update owner's pet collection for in-memory consistency
+        owner.addPet(savedPet);
         
         return savedPet;
     }
